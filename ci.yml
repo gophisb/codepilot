@@ -1,0 +1,27 @@
+name: CodePilot CI
+on:
+  push:
+  pull_request:
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate JavaScript
+        run: |
+          node --check api/chat.js
+          node --check api/providers.js
+      - name: Validate HTML
+        run: python - <<'PY'
+          from html.parser import HTMLParser
+          from pathlib import Path
+          class P(HTMLParser): pass
+          p=P(); p.feed(Path('index.html').read_text(encoding='utf-8'))
+          print('HTML parsed successfully')
+          PY
+      - name: Check required files
+        run: |
+          test -f index.html
+          test -f api/chat.js
+          test -f api/providers.js
+          test -f vercel.json
