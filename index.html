@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>CodePilot Lite — مصنع التطبيقات</title>
+  <meta name="description" content="مصنع خفيف لصناعة التطبيقات وصفحات الويب بالذكاء الاصطناعي">
+  <style>
+    *{box-sizing:border-box}body{margin:0;background:#070b14;color:#f4f7fb;font-family:system-ui,-apple-system,Segoe UI,sans-serif}
+    .app{max-width:1050px;margin:auto;min-height:100vh;display:flex;flex-direction:column}
+    header{padding:18px;border-bottom:1px solid #20304c;display:flex;justify-content:space-between;gap:12px;align-items:center}
+    .brand{color:#35d07f;font-size:11px;font-weight:800;letter-spacing:2px}.title{font-size:22px;font-weight:800}.muted{color:#8995aa;font-size:12px}
+    main{flex:1;padding:18px}.card{background:#0e1627;border:1px solid #263654;border-radius:16px;padding:14px;margin-bottom:12px}
+    .row{display:flex;gap:8px;flex-wrap:wrap}.field{flex:1;min-width:150px}.field label{display:block;color:#9aa8bd;font-size:11px;margin-bottom:4px}
+    input,select,textarea{width:100%;background:#091221;color:#f4f7fb;border:1px solid #2a3a5b;border-radius:10px;padding:10px;font:inherit;outline:none}
+    textarea{min-height:100px;resize:vertical}.modes button,.actions button{border:1px solid #2a3a5b;background:#111b2e;color:#dbe4f0;border-radius:9px;padding:8px 12px;cursor:pointer}
+    button.active,.primary{background:#35d07f!important;color:#06100a!important;border-color:#35d07f!important;font-weight:800}
+    .chat{max-height:55vh;overflow:auto}.msg{padding:12px 14px;border-radius:14px;margin:9px 0;white-space:pre-wrap;line-height:1.75;overflow-wrap:anywhere}
+    .user{background:#35d07f;color:#06100a;margin-right:12%;}.ai{background:#121d31;border:1px solid #263654}
+    pre{direction:ltr;text-align:left;background:#060a11;padding:12px;border-radius:9px;overflow:auto;white-space:pre-wrap}
+    .error{color:#ff8c8c;background:#2a1115;border:1px solid #71343c;padding:9px;border-radius:9px;margin:8px 0}.ok{color:#70e6a1}
+    footer{padding:12px 18px;color:#66748a;font-size:10px;text-align:center}
+    @media(max-width:650px){main{padding:10px}.user{margin-right:4%}.title{font-size:18px}}
+  </style>
+</head>
+<body>
+<div class="app">
+<header><div><div class="brand">CODEPILOT LITE</div><div class="title">مصنع التطبيقات والكود</div><div class="muted">واجهة خفيفة + خادم صغير + OpenAI</div></div></header>
+<main>
+<section class="card">
+  <div class="row">
+    <div class="field"><label>اسم المشروع</label><input id="project" value="مشروعي"></div>
+    <div class="field"><label>المنصة</label><select id="platform"><option>Web / PWA</option><option>Android</option><option>React Native</option><option>HTML / CSS / JS</option><option>Next.js</option></select></div>
+    <div class="field"><label>التقنية</label><input id="stack" value="HTML/CSS/JS"></div>
+    <div class="field"><label>مزود AI</label><select id="provider"><option value="openai">OpenAI</option><option value="openrouter">OpenRouter</option><option value="deepseek">DeepSeek</option></select></div>
+    <div class="field"><label>النموذج (اختياري)</label><input id="model" placeholder="الافتراضي حسب المزود"></div>
+  </div>
+  <div class="modes" style="margin-top:10px">
+    <button class="active" data-mode="build">بناء</button><button data-mode="debug">إصلاح</button><button data-mode="plan">تخطيط</button><button data-mode="explain">شرح</button>
+  </div>
+</section>
+<section class="card" id="workspace" style="display:none">
+  <div class="row" style="justify-content:space-between;align-items:center">
+    <b>مساحة المشروع</b><div class="row"><button id="download" class="primary">تصدير المشروع</button><button id="preview">معاينة HTML</button></div>
+  </div>
+  <div id="files" class="row" style="margin-top:8px"></div>
+  <pre id="code" style="display:none"></pre><iframe id="frame" title="preview" style="display:none;width:100%;height:420px;border:1px solid #263654;border-radius:10px;background:white;margin-top:8px"></iframe>
+</section>
+<section class="card chat" id="chat"><div class="msg ai">مرحبًا. صف التطبيق أو صفحة الويب التي تريد بناءها، وسأحوّل فكرتك إلى خطة وكود وملفات.</div></section>
+<section class="card">
+  <textarea id="prompt" placeholder="مثال: أنشئ صفحة ويب عربية لإدارة مخزون متجر، متجاوبة مع الهاتف..."></textarea>
+  <div class="actions row" style="margin-top:8px;justify-content:space-between">
+    <span class="muted">يُرسل الطلب إلى /api/chat — لا يوجد مفتاح API داخل GitHub.</span>
+    <div><button id="clear">مسح</button> <button id="send" class="primary">إرسال ↑</button></div>
+  </div>
+  <div id="status"></div>
+</section>
+</main>
+<footer>CodePilot Lite — ضع مفتاح OPENAI_API_KEY في الخادم فقط.</footer>
+</div>
+<script>
+let mode="build", projectFiles=[];
+const chat=document.querySelector("#chat"), promptEl=document.querySelector("#prompt"), status=document.querySelector("#status");
+document.querySelectorAll("[data-mode]").forEach(b=>b.onclick=()=>{document.querySelectorAll("[data-mode]").forEach(x=>x.classList.remove("active"));b.classList.add("active");mode=b.dataset.mode});
+function esc(s){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+function parseFiles(text){const out=[],re=/```([^\n`]*)\n([\s\S]*?)```/g;let m;while(m=re.exec(text)){const h=m[1].trim(),f=h.match(/filename\s*=\s*([^\s]+)/i)||h.match(/file\s*=\s*([^\s]+)/i);if(f)out.push({path:f[1].replace(/["']/g,''),code:m[2].trim()})}return out}
+function renderFiles(){const w=document.querySelector('#workspace'),box=document.querySelector('#files');if(!projectFiles.length){w.style.display='none';return}w.style.display='block';box.innerHTML='';projectFiles.forEach((f,i)=>{const b=document.createElement('button');b.textContent=f.path;b.onclick=()=>{document.querySelector('#code').style.display='block';document.querySelector('#frame').style.display='none';document.querySelector('#code').textContent=f.code};box.appendChild(b)});}
+function exportProject(){if(!projectFiles.length)return;const data={name:document.querySelector('#project').value,platform:document.querySelector('#platform').value,stack:document.querySelector('#stack').value,generatedAt:new Date().toISOString(),files:projectFiles};const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));a.download=(data.name||'codepilot-project').replace(/[^\w\u0600-\u06ff-]+/g,'-')+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
+function previewProject(){const html=projectFiles.find(f=>f.path.toLowerCase()==='index.html');if(!html){status.innerHTML='<div class="error">المشروع لا يحتوي index.html للمعاينة المباشرة.</div>';return}const frame=document.querySelector('#frame');document.querySelector('#code').style.display='none';frame.style.display='block';frame.srcdoc=html.code}
+function add(role,text){const d=document.createElement("div");d.className="msg "+(role==="user"?"user":"ai");d.textContent=text;chat.appendChild(d);chat.scrollTop=chat.scrollHeight;return d}
+document.querySelector("#clear").onclick=()=>{chat.innerHTML='<div class="msg ai">تم مسح الجلسة. صف مشروعك من جديد.</div>';status.textContent=""};
+async function send(){
+ const p=promptEl.value.trim();if(!p)return;
+ const project=document.querySelector("#project").value.trim(), platform=document.querySelector("#platform").value, stack=document.querySelector("#stack").value.trim(), provider=document.querySelector("#provider").value, model=document.querySelector("#model").value.trim();
+ add("user",p);promptEl.value="";status.innerHTML='<span class="muted">جاري العمل...</span>';
+ document.querySelector("#send").disabled=true;
+ try{
+  const r=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prompt:p,mode,project,platform,stack,provider,model})});
+  const data=await r.json();if(!r.ok)throw new Error(data.error||"فشل الطلب");
+  add("ai",data.text||"لم تصل نتيجة.");projectFiles=parseFiles(data.text||"");renderFiles();status.innerHTML=`<span class="ok">تمت الاستجابة — ${esc(data.provider || provider)} / ${esc(data.model || model || "default")}</span>`;
+ }catch(e){status.innerHTML='<div class="error">'+e.message+"</div>"}finally{document.querySelector("#send").disabled=false}
+}
+document.querySelector("#send").onclick=send;
+promptEl.addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send()}});
+document.querySelector('#download').onclick=exportProject;document.querySelector('#preview').onclick=previewProject;
+</script>
+</body>
+</html>
