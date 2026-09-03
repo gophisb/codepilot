@@ -1,7 +1,7 @@
 const providers = {
   openai: { env: 'OPENAI_API_KEY', base: 'https://api.openai.com/v1/chat/completions', defaultModel: 'gpt-4o', type: 'chat' },
   openrouter: { env: 'OPENROUTER_API_KEY', base: 'https://openrouter.ai/api/v1/chat/completions', defaultModel: 'openai/gpt-4o', type: 'chat' },
-  deepseek: { env: 'DEEPSEEK_API_KEY', base: 'https://api.deepseek.com/chat/completions', defaultModel: 'deepseek-chat', type: 'chat' }
+  deepseek: { envsk-ed3c9c753c334374b94664df9741f432 , base: 'https://api.deepseek.com/chat/completions', defaultModel: 'deepseek-chat', type: 'chat' }
 };
 
 function providerNames() { return Object.keys(providers); }
