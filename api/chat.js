@@ -61,12 +61,12 @@ ${body.stack || 'HTML/CSS/JS'}
 `;
 
     const requested = String(
-      body.provider || process.env.AI_PROVIDER || 'openai'
+      body.provider || process.env.AI_PROVIDER || 'deepseek'
     ).toLowerCase();
 
     const provider = providerConfig(requested)
       ? requested
-      : 'openai';
+      : 'deepseek';
 
     const config = providerConfig(provider);
 
