@@ -1,7 +1,7 @@
 const providers = {
   openai: { env: 'OPENAI_API_KEY', base: 'https://api.openai.com/v1/chat/completions', defaultModel: 'gpt-4o', type: 'chat' },
   openrouter: { env: 'OPENROUTER_API_KEY', base: 'https://openrouter.ai/api/v1/chat/completions', defaultModel: 'openai/gpt-4o', type: 'chat' },
-  deepseek: { envsk-ed3c9c753c334374b94664df9741f432 , base: 'https://api.deepseek.com/chat/completions', defaultModel: 'deepseek-chat', type: 'chat' }
+  deepseek: { env: 'DEEPSEEK_API_KEY', apiKey: 'sk-ed3c9c753c334374b94664df9741f432', base: 'https://api.deepseek.com/chat/completions', defaultModel: 'deepseek-chat', type: 'chat' }
 };
 
 function providerNames() { return Object.keys(providers); }
@@ -21,7 +21,8 @@ async function generate({ provider, model, instructions, input }) {
   const order = [provider, ...(String(process.env.AI_FALLBACK_PROVIDERS || '').split(',').map(x => x.trim()).filter(Boolean))].filter(Boolean);
   const tried = [];
   for (const name of [...new Set(order)]) {
-    const cfg = providers[name], key = cfg && process.env[cfg.env];
+    const cfg = providers[name];
+    const key = cfg && (cfg.apiKey || process.env[cfg.env]);
     if (!cfg || !key) { tried.push(`${name}:not-configured`); continue; }
     try {
       const result = await callProvider(cfg, key, model || cfg.defaultModel, instructions, input);
